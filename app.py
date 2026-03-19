@@ -637,79 +637,79 @@ def fill_pdf(answers):
 
     fields_filled = 0
 
-    for answer_id, answer_value in answers.items():
-        if not answer_value or answer_id not in FIELD_MAPPING:
-            continue
+    for page in doc:
+        for field in page.widgets():
+            field_name = field.field_name or ''
 
-        mapping = FIELD_MAPPING[answer_id]
+            for answer_id, answer_value in answers.items():
+                if not answer_value or answer_id not in FIELD_MAPPING:
+                    continue
 
-        # Handle different mapping types
-        if isinstance(mapping, dict):
-            mapping_type = mapping.get('type')
+                mapping = FIELD_MAPPING[answer_id]
 
-            if mapping_type == 'radio':
-                # Radio button - find the matching option
-                target = mapping['options'].get(str(answer_value), '')
-                if target:
-                    for page in doc:
-                        for field in page.widgets():
-                            field_name = field.field_name or ''
-                            if target in field_name:
+                try:
+                    if isinstance(mapping, dict):
+                        if mapping['type'] == 'radio':
+                            target = mapping['options'].get(
+                                str(answer_value), ''
+                            )
+                            if target and target in field_name:
                                 field.field_value = True
                                 field.update()
                                 fields_filled += 1
-                                break
-
-            elif mapping_type == 'checkbox':
-                # Multiple checkboxes can be selected
-                selected = answer_value if isinstance(answer_value, list) else [answer_value]
-                for sel in selected:
-                    target = mapping['options'].get(str(sel), '')
-                    if target:
-                        for page in doc:
-                            for field in page.widgets():
-                                field_name = field.field_name or ''
-                                if target in field_name:
+                        elif mapping['type'] == 'checkbox':
+                            selected = answer_value if isinstance(answer_value, list) else [answer_value]
+                            for sel in selected:
+                                target = mapping['options'].get(str(sel), '')
+                                if target and target in field_name:
                                     field.field_value = True
                                     field.update()
                                     fields_filled += 1
-                                    break
+                        elif mapping['type'] == 'weight':
+                            weight_str = str(answer_value).zfill(3)
+                            weight_fields = mapping['fields']
+                            for i, digit in enumerate(weight_str[-3:]):
+                                if i < len(weight_fields):
+                                    target = weight_fields[i]
+                                    if target in field_name:
+                                        field.field_value = digit
+                                        field.update()
+                                        fields_filled += 1
+                    elif isinstance(mapping, str):
+                        if mapping in field_name:
+                            field_type = field.field_type
 
-            elif mapping_type == 'weight':
-                # Weight is 3 separate digit fields
-                weight_str = str(answer_value).zfill(3)
-                weight_fields = mapping['fields']
-                for i, digit in enumerate(weight_str[-3:]):
-                    if i < len(weight_fields):
-                        target = weight_fields[i]
-                        for page in doc:
-                            for field in page.widgets():
-                                field_name = field.field_name or ''
-                                if target in field_name:
-                                    field.field_value = digit
+                            # Format dates
+                            if 'date' in answer_id.lower() or \
+                               'Date' in mapping or 'dob' in answer_id.lower():
+                                value = format_date(answer_value)
+                            else:
+                                value = str(answer_value)
+
+                            # Handle dropdown fields carefully
+                            if field_type == 2:  # dropdown/listbox
+                                # Only set if value is in choices
+                                choices = field.choice_values or []
+                                choice_strings = [
+                                    str(c) if not isinstance(c, str)
+                                    else c
+                                    for c in choices
+                                ]
+                                if value in choice_strings:
+                                    field.field_value = value
                                     field.update()
                                     fields_filled += 1
-                                    break
-
-        elif isinstance(mapping, str):
-            # Simple text field
-            target = mapping
-
-            # Format dates
-            if 'date' in answer_id.lower() or 'Date' in target or 'dob' in answer_id.lower():
-                value = format_date(answer_value)
-            else:
-                value = str(answer_value)
-
-            # Find and fill the field
-            for page in doc:
-                for field in page.widgets():
-                    field_name = field.field_name or ''
-                    if target in field_name:
-                        field.field_value = value
-                        field.update()
-                        fields_filled += 1
-                        break
+                                else:
+                                    print(f'Skipping dropdown {field_name}: '
+                                          f'"{value}" not in {choice_strings[:5]}')
+                            else:
+                                # Text field or checkbox
+                                field.field_value = value
+                                field.update()
+                                fields_filled += 1
+                except Exception as e:
+                    print(f'Warning: Could not fill {field_name}: {e}')
+                    continue
 
     print(f"Filled {fields_filled} fields")
 
