@@ -13,7 +13,7 @@ I130_PDF_URL = os.environ.get(
 )
 
 # Secret key to protect the endpoint
-API_SECRET = os.environ.get('PDF_SERVICE_SECRET', 'changeme')
+API_SECRET = os.environ.get('PDF_SERVICE_SECRET', 'aponte-law-pdf-2026')
 
 # Complete I-130 field mapping from questionnaire IDs to PDF field names
 # Based on exact field extraction from the official USCIS I-130 PDF form
