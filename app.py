@@ -599,6 +599,39 @@ FIELD_MAPPING = {
     'attorney_volag': 'VolagNumber',
     'attorney_bar_number': 'AttorneyStateBarNumber',
     'attorney_uscis_account': 'USCISOnlineAcctNumber',
+
+    # ============================================================
+    # G-28 ATTORNEY AUTO-FILL FIELDS
+    # ============================================================
+    # Attorney section at top of form
+    '__g28_attached': {
+        'type': 'checkbox',
+        'field': 'CheckBox1'
+    },
+    '__bar_number': 'AttorneyStateBarNumber',
+    '__uscis_account': 'USCISOnlineAcctNumber',
+    '__volag_number': 'VolagNumber',
+
+    # Part 8 - Preparer Information
+    '__preparer_family_name': 'Pt8Line1a_PreparerFamilyName',
+    '__preparer_given_name': 'Pt8Line1b_PreparerGivenName',
+    '__preparer_business': 'Pt8Line2_BusinessName',
+    '__preparer_street': 'Pt8Line3_StreetNumberName',
+    '__preparer_apt_type': {
+        'type': 'radio',
+        'options': {
+            'Apt': 'Pt8Line3_Unit[0]',
+            'Ste': 'Pt8Line3_Unit[1]',
+            'Flr': 'Pt8Line3_Unit[2]',
+        }
+    },
+    '__preparer_apt': 'Pt8Line3_AptSteFlrNumber',
+    '__preparer_city': 'Pt8Line3_CityOrTown',
+    '__preparer_state': 'Pt8Line3_State',
+    '__preparer_zip': 'Pt8Line3_ZipCode',
+    '__preparer_phone': 'Pt8Line4_DaytimePhoneNumber',
+    '__preparer_mobile': 'Pt8Line5_PreparerFaxNumber',  # Actually mobile in the PDF
+    '__preparer_email': 'Pt8Line6_Email',
 }
 
 
@@ -712,6 +745,46 @@ def fill_pdf(answers):
                     continue
 
     print(f"Filled {fields_filled} fields")
+
+    # ============================================================
+    # G-28 ATTORNEY AUTO-FILL: Check G-28 checkbox and attorney box
+    # ============================================================
+
+    # Check G-28 attached checkbox if attorney data is provided
+    if answers.get('__g28_attached') or answers.get('__bar_number'):
+        for page in doc:
+            for field in page.widgets():
+                field_name = field.field_name or ''
+                # G-28 checkbox at top of form (CheckBox1)
+                if 'CheckBox1' in field_name and 'Pt8' not in field_name:
+                    try:
+                        field.field_value = True
+                        field.update()
+                        print(f"Checked G-28 box: {field_name}")
+                    except Exception as e:
+                        print(f"Could not check G-28 box: {e}")
+
+    # Check "I am an attorney" checkbox in Part 8 if attorney
+    if answers.get('__is_attorney', False):
+        for page in doc:
+            for field in page.widgets():
+                field_name = field.field_name or ''
+                # Part 8 attorney checkbox - "extends beyond preparation"
+                if 'Pt8Line7b_Checkbox[0]' in field_name:
+                    try:
+                        field.field_value = True
+                        field.update()
+                        print(f"Checked attorney checkbox: {field_name}")
+                    except Exception as e:
+                        print(f"Could not check attorney box: {e}")
+                # Also select Part 8 Line 7 Option B (attorney section)
+                if 'Pt8Line7_Checkbox[1]' in field_name:
+                    try:
+                        field.field_value = True
+                        field.update()
+                        print(f"Checked Part 8 Line 7 attorney option: {field_name}")
+                    except Exception as e:
+                        print(f"Could not check attorney option: {e}")
 
     # Save to temp file
     tmp_output = tempfile.NamedTemporaryFile(suffix='.pdf', delete=False)
