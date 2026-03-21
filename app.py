@@ -6,20 +6,58 @@ import fitz  # PyMuPDF
 
 app = Flask(__name__)
 
-# I-130 PDF URL from Vercel Blob
-I130_PDF_URL = os.environ.get(
-    'I130_PDF_URL',
-    'https://axqfryjovgwq4smc.public.blob.vercel-storage.com/uscis-forms/i-130.pdf'
-)
-
 # Secret key to protect the endpoint
 API_SECRET = os.environ.get('PDF_SERVICE_SECRET', 'aponte-law-pdf-2026')
 
-# G-28 PDF URL
-G28_PDF_URL = os.environ.get(
-    'G28_PDF_URL',
-    'https://www.uscis.gov/sites/default/files/document/forms/g-28.pdf'
-)
+# =============================================================================
+# PDF URLs for all supported USCIS forms
+# =============================================================================
+PDF_URLS = {
+    'I-130': os.environ.get(
+        'I130_PDF_URL',
+        'https://axqfryjovgwq4smc.public.blob.vercel-storage.com/uscis-forms/i-130.pdf'
+    ),
+    'I-485': os.environ.get(
+        'I485_PDF_URL',
+        'https://www.uscis.gov/sites/default/files/document/forms/i-485.pdf'
+    ),
+    'I-765': os.environ.get(
+        'I765_PDF_URL',
+        'https://www.uscis.gov/sites/default/files/document/forms/i-765.pdf'
+    ),
+    'I-131': os.environ.get(
+        'I131_PDF_URL',
+        'https://www.uscis.gov/sites/default/files/document/forms/i-131.pdf'
+    ),
+    'N-400': os.environ.get(
+        'N400_PDF_URL',
+        'https://www.uscis.gov/sites/default/files/document/forms/n-400.pdf'
+    ),
+    'I-589': os.environ.get(
+        'I589_PDF_URL',
+        'https://www.uscis.gov/sites/default/files/document/forms/i-589.pdf'
+    ),
+    'I-751': os.environ.get(
+        'I751_PDF_URL',
+        'https://www.uscis.gov/sites/default/files/document/forms/i-751.pdf'
+    ),
+    'I-539': os.environ.get(
+        'I539_PDF_URL',
+        'https://www.uscis.gov/sites/default/files/document/forms/i-539.pdf'
+    ),
+    'I-864': os.environ.get(
+        'I864_PDF_URL',
+        'https://www.uscis.gov/sites/default/files/document/forms/i-864.pdf'
+    ),
+    'G-28': os.environ.get(
+        'G28_PDF_URL',
+        'https://www.uscis.gov/sites/default/files/document/forms/g-28.pdf'
+    ),
+}
+
+# Legacy references for backwards compatibility
+I130_PDF_URL = PDF_URLS['I-130']
+G28_PDF_URL = PDF_URLS['G-28']
 
 # G-28 Field Mapping - Exact field names extracted from official PDF
 G28_FIELD_MAPPING = {
@@ -718,6 +756,296 @@ FIELD_MAPPING = {
     '__preparer_email': 'Pt8Line6_Email',
 }
 
+# =============================================================================
+# I-485 FIELD MAPPING - Application to Register Permanent Residence
+# =============================================================================
+I485_FIELD_MAPPING = {
+    'p1_alien_number': 'AlienNumber[0]',
+    'p1_uscis_account': 'Pt1Line1a_OnlineAcctNumber[0]',
+    'p1_last_name': 'Pt1Line1_FamilyName[0]',
+    'p1_first_name': 'Pt1Line2_GivenName[0]',
+    'p1_middle_name': 'Pt1Line3_MiddleName[0]',
+    'p1_date_of_birth': 'Pt1Line3_DOB[0]',
+    'p1_country_of_birth': 'Pt1Line5_CountryOfBirth[0]',
+    'p1_country_of_citizenship': 'Pt1Line6_CountryofCitizenship[0]',
+    'p1_ssn': 'Pt1Line7_SSN[0]',
+    'p1_date_of_arrival': 'Pt1Line8_DateOfLastArrival[0]',
+    'p1_i94_number': 'Pt1Line9_I94Number[0]',
+    'p1_current_status': 'Pt1Line12_CurrentImmigrationStatus[0]',
+    'p1_status_expires': 'Pt1Line13_StatusExpires[0]',
+    'p1_passport_number': 'Pt1Line10a_PassportNumber[0]',
+    'p1_travel_doc_number': 'Pt1Line10b_TravelDocNumber[0]',
+    'p1_passport_country': 'Pt1Line11_CountryOfIssuance[0]',
+    'p1_passport_expiration': 'Pt1Line11a_ExpDate[0]',
+    # Mailing Address
+    'p2_mailing_care_of': 'Pt2Line1_InCareofName[0]',
+    'p2_mailing_street': 'Pt2Line1_StreetNumberName[0]',
+    'p2_mailing_apt': 'Pt2Line1_AptSteFlrNumber[0]',
+    'p2_mailing_city': 'Pt2Line1_CityOrTown[0]',
+    'p2_mailing_state': 'Pt2Line1_State[0]',
+    'p2_mailing_zip': 'Pt2Line1_ZipCode[0]',
+    # Physical Address
+    'p2_physical_street': 'Pt2Line2a_StreetNumberName[0]',
+    'p2_physical_apt': 'Pt2Line2b_AptSteFlrNumber[0]',
+    'p2_physical_city': 'Pt2Line2c_CityOrTown[0]',
+    'p2_physical_state': 'Pt2Line2d_State[0]',
+    'p2_physical_zip': 'Pt2Line2e_ZipCode[0]',
+    'p2_physical_date_from': 'Pt2Line2f_DateFrom[0]',
+    # Contact
+    'p3_daytime_phone': 'Pt3Line1_DaytimePhone[0]',
+    'p3_mobile_phone': 'Pt3Line2_MobilePhone[0]',
+    'p3_email': 'Pt3Line3_Email[0]',
+}
+
+# =============================================================================
+# I-765 FIELD MAPPING - Employment Authorization
+# =============================================================================
+I765_FIELD_MAPPING = {
+    'p1_last_name': 'Line1a_FamilyName[0]',
+    'p1_first_name': 'Line1b_GivenName[0]',
+    'p1_middle_name': 'Line1c_MiddleName[0]',
+    'p1_other_last_name': 'Line2a_FamilyName[0]',
+    'p1_other_first_name': 'Line2b_GivenName[0]',
+    'p1_other_middle_name': 'Line2c_MiddleName[0]',
+    'p1_alien_number': 'Line7_AlienNumber[0]',
+    'p1_uscis_account': 'Line8_USCISOnlineAcctNumber[0]',
+    'p1_date_of_birth': 'Line4_DateOfBirth[0]',
+    'p1_country_of_birth': 'Line5_CountryofBirth[0]',
+    'p1_ssn': 'Line6_SSN[0]',
+    'p1_i94_number': 'Line9_I94ArrivalDepartureRecordNumber[0]',
+    'p1_passport_number': 'Line10_PassportNumber[0]',
+    'p1_travel_doc_number': 'Line11_TravelDocumentNumber[0]',
+    'p1_passport_country': 'Line12_CountryofIssuance[0]',
+    'p1_passport_expiration': 'Line13_ExpDate[0]',
+    'p1_date_of_arrival': 'Line14_DateofLastEntryIntoUS[0]',
+    'p1_place_of_arrival': 'Line15_PlaceofLastEntryIntoUS[0]',
+    'p1_current_status': 'Line16_CurrentImmStatus[0]',
+    # Mailing Address
+    'p2_mailing_care_of': 'Pt2Line1_InCareofName[0]',
+    'p2_mailing_street': 'Pt2Line2_StreetNumberName[0]',
+    'p2_mailing_apt': 'Pt2Line4_AptSteFlrNumber[0]',
+    'p2_mailing_city': 'Pt2Line5_CityOrTown[0]',
+    'p2_mailing_state': 'Pt2Line6_State[0]',
+    'p2_mailing_zip': 'Pt2Line7_ZipCode[0]',
+}
+
+# =============================================================================
+# I-131 FIELD MAPPING - Travel Document
+# =============================================================================
+I131_FIELD_MAPPING = {
+    'p2_last_name': 'Part2_Line1_FamilyName[0]',
+    'p2_first_name': 'Part2_Line2_GivenName[0]',
+    'p2_middle_name': 'Part2_Line3_MiddleName[0]',
+    'p1_alien_number': 'P1_Line4[0]',
+    'p1_uscis_account': 'P1_Line5A[0]',
+    'p1_date_of_birth': 'P2_Line5_DateOfBirth[0]',
+    'p1_country_of_birth': 'P2_Line6_CountryOfBirth[0]',
+    'p1_country_of_citizenship': 'P2_Line7_CountryOfCitizenship[0]',
+    'p1_ssn': 'P2_Line3_SSN[0]',
+    'p1_class_of_admission': 'P2_Line8_ClassOfAdmission[0]',
+    # Mailing Address
+    'p2_mailing_care_of': 'P2_Line9_InCareofName[0]',
+    'p2_mailing_street': 'P2_Line10_StreetNumberName[0]',
+    'p2_mailing_apt': 'P2_Line10_AptSteFlrNumber[0]',
+    'p2_mailing_city': 'P2_Line10_CityOrTown[0]',
+    'p2_mailing_state': 'P2_Line10_State[0]',
+    'p2_mailing_zip': 'P2_Line10_ZipCode[0]',
+    # Contact
+    'p2_daytime_phone': 'P2_Line11_DaytimePhone[0]',
+    'p2_email': 'P2_Line12_Email[0]',
+}
+
+# =============================================================================
+# N-400 FIELD MAPPING - Naturalization
+# =============================================================================
+N400_FIELD_MAPPING = {
+    'p2_last_name': 'P2_Line1_FamilyName[0]',
+    'p2_first_name': 'P2_Line2_GivenName[0]',
+    'p2_middle_name': 'P2_Line3_MiddleName[0]',
+    'p1_alien_number': 'Line1_AlienNumber[0]',
+    'p1_uscis_account': 'Line2_USCISOnlineActNumber[0]',
+    'p2_date_of_birth': 'P2_Line8_DateOfBirth[0]',
+    'p2_date_became_lpr': 'P2_Line9_DateYouBecameLPR[0]',
+    'p2_country_of_birth': 'P2_Line10_CountryOfBirth[0]',
+    'p2_country_of_citizenship': 'P2_Line11_CountryOfNationality[0]',
+    'p2_ssn': 'P2_Line14_SSN[0]',
+    # Mailing Address
+    'p4_mailing_care_of': 'P4Line1_InCareofName[0]',
+    'p4_mailing_street': 'P4Line2_StreetNumberName[0]',
+    'p4_mailing_apt': 'P4Line4_AptSteFlrNumber[0]',
+    'p4_mailing_city': 'P4Line5_CityOrTown[0]',
+    'p4_mailing_state': 'P4Line6_State[0]',
+    'p4_mailing_zip': 'P4Line7_ZipCode[0]',
+    # Contact
+    'p4_daytime_phone': 'P4Line10_DaytimePhoneNumber[0]',
+    'p4_work_phone': 'P4Line11_WorkPhoneNumber[0]',
+    'p4_email': 'P4Line12_EmailAddress[0]',
+}
+
+# =============================================================================
+# I-589 FIELD MAPPING - Asylum
+# =============================================================================
+I589_FIELD_MAPPING = {
+    'pa1_alien_number': 'PtAILine1_ANumber[0]',
+    'pa1_last_name': 'PtAILine4_LastName[0]',
+    'pa1_first_name': 'PtAILine5_FirstName[0]',
+    'pa1_middle_name': 'PtAILine6_MiddleName[0]',
+    'pa1_date_of_birth': 'DateTimeField1[0]',
+    'pa1_sex': {
+        'type': 'radio',
+        'options': {
+            'Male': 'PartALine9Sex[0]',
+            'Female': 'PartALine9Sex[1]',
+        }
+    },
+    'pa1_marital_status': {
+        'type': 'radio',
+        'options': {
+            'Single': 'Marital[0]',
+            'Married': 'Marital[1]',
+            'Divorced': 'Marital[2]',
+            'Widowed': 'Marital[3]',
+        }
+    },
+    # Address
+    'pa1_street': 'PtAILine8_StreetNumandName[0]',
+    'pa1_apt': 'PtAILine8_AptNumber[0]',
+    'pa1_state': 'PtAILine8_State[0]',
+    'pa1_zip': 'PtAILine8_Zipcode[0]',
+    'pa1_area_code': 'PtAILine8_AreaCode[0]',
+    'pa1_phone': 'PtAILine8_TelephoneNumber[0]',
+    # Mailing Address
+    'pa1_mailing_street': 'PtAILine9_StreetNumandName[0]',
+    'pa1_mailing_apt': 'PtAILine9_AptNumber[0]',
+    'pa1_mailing_city': 'PtAILine9_City[0]',
+    'pa1_mailing_state': 'PtAILine9_State[0]',
+    'pa1_mailing_zip': 'PtAILine9_ZipCode[0]',
+}
+
+# =============================================================================
+# I-751 FIELD MAPPING - Remove Conditions
+# =============================================================================
+I751_FIELD_MAPPING = {
+    'p1_last_name': 'Pt1Line1a_FamilyName[0]',
+    'p1_first_name': 'Pt1Line1b_GivenName[0]',
+    'p1_middle_name': 'Pt1Line1c_MiddleName[0]',
+    'p1_maiden_last_name': 'P1_Line2a_FamilyName[0]',
+    'p1_maiden_first_name': 'P1_Line2b_GivenName[0]',
+    'p1_other_last_name': 'P1_Line3a_FamilyName[0]',
+    'p1_other_first_name': 'P1_Line3b_GivenName[0]',
+    'p1_date_of_birth': 'P1_Line4_DateOfBirth[0]',
+    'p1_country_of_birth': 'P1_Line5_CountryOfBirth[0]',
+    'p1_country_of_citizenship': 'P1_Line6_CountryOfCitizenship[0]',
+    'p1_alien_number': 'P1_Line7_AlienNumber[0]',
+    'p1_ssn': 'P1_Line8_SSN[0]',
+    'p1_uscis_account': 'P1_Line9_AcctIdentifier[0]',
+    'p1_marital_status': {
+        'type': 'radio',
+        'options': {
+            'Married': 'Part1_Line10_MaritalStatus[0]',
+            'Divorced': 'Part1_Line10_MaritalStatus[1]',
+            'Widowed': 'Part1_Line10_MaritalStatus[2]',
+            'Annulled': 'Part1_Line10_MaritalStatus[3]',
+        }
+    },
+    'p1_date_of_marriage': 'P1_Line11_DateOfMarriage[0]',
+    'p1_place_of_marriage': 'P1_Line12_PlaceOfMarriage[0]',
+    'p1_date_marriage_ended': 'P1_Line13_DateMarriageEnded[0]',
+    'p1_cr_expires': 'P1_Line14_CRExpiresOn[0]',
+    # Mailing Address
+    'p1_mailing_care_of': 'Pt1Line17_InCareofName[0]',
+    'p1_mailing_street': 'Pt1Line17_StreetNumberName[0]',
+    'p1_mailing_apt': 'Pt1Line17_AptSteFlrNumber[0]',
+    'p1_mailing_city': 'Pt1Line17_CityOrTown[0]',
+    'p1_mailing_zip': 'Pt1Line17_ZipCode[0]',
+}
+
+# =============================================================================
+# I-539 FIELD MAPPING - Extend/Change Status
+# =============================================================================
+I539_FIELD_MAPPING = {
+    'p1_last_name': 'P1Line1a_FamilyName[0]',
+    'p1_first_name': 'P1_Line1b_GivenName[0]',
+    'p1_middle_name': 'P1_Line1c_MiddleName[0]',
+    'p1_alien_number': 'Pt1Line2_AlienNumber[0]',
+    'p1_uscis_account': 'Pt1Line2_USCISOnlineAcctNumber[0]',
+    'p1_country_of_birth': 'P1_Line6_CountryOfBirth[0]',
+    'p1_country_of_citizenship': 'P1_Line7_CountryOfCitizenship[0]',
+    'p1_date_of_birth': 'P1_Line8_DateOfBirth[0]',
+    'p1_ssn': 'P1_Line9_SSN[0]',
+    'p1_date_of_arrival': 'SupA_Line1i_DateOfArrival[0]',
+    'p1_i94_number': 'SupA_Line1j_ArrivalDeparture[0]',
+    'p1_passport_number': 'SupA_Line1k_Passport[0]',
+    'p1_travel_doc_number': 'SupA_Line1l_TravelDoc[0]',
+    'p1_passport_country': 'SupA_Line1m_CountryOfIssuance[0]',
+    'p1_passport_expiration': 'SupA_Line1n_ExpDate[0]',
+    'p1_status_expiration': 'SupA_Line1p_DateExpires[0]',
+    # Mailing Address
+    'p2_mailing_care_of': 'Part2_Item11_InCareOfName[0]',
+    'p2_mailing_street': 'Part2_Item11_StreetName[0]',
+    'p2_mailing_apt': 'Part1_Item4_Number[0]',
+    'p2_mailing_city': 'Part2_Item11_City[0]',
+    'p2_mailing_zip': 'Part2_Item11_ZipCode[0]',
+    # Physical Address
+    'p1_physical_street': 'Part1_Item6_StreetName[0]',
+    'p1_physical_apt': 'Part1_Item6_Number[0]',
+    'p1_physical_city': 'Part1_Item6_City[0]',
+    'p1_physical_zip': 'Part1_Item6_ZipCode[0]',
+    # Application Details
+    'p2_requested_date': 'Pt2Line2b_EffectiveDate[0]',
+    'p3_receipt_number': 'P3_Line5_ReceiptNumber[0]',
+}
+
+# =============================================================================
+# I-864 FIELD MAPPING - Affidavit of Support
+# =============================================================================
+I864_FIELD_MAPPING = {
+    # Part 4 - Sponsor Information
+    'p4_last_name': 'P4_Line1a_FamilyName[0]',
+    'p4_first_name': 'P4_Line1b_GivenName[0]',
+    'p4_middle_name': 'P4_Line1c_MiddleName[0]',
+    'p4_date_of_birth': 'P4_Line6_DateOfBirth[0]',
+    'p4_city_of_birth': 'P4_Line7_CityofBirth[0]',
+    'p4_country_of_domicile': 'P4_Line5_CountryOfDomicile[0]',
+    'p4_ssn': 'P4_Line10_SocialSecurityNumber[0]',
+    'p4_alien_number': 'P4_Line12_AlienNumber[0]',
+    'p4_uscis_account': 'P4_Line13_AcctIdentifier[0]',
+    # Sponsor Mailing Address
+    'p4_mailing_care_of': 'P4_Line2a_InCareOf[0]',
+    'p4_mailing_street': 'P4_Line2b_StreetNumberName[0]',
+    'p4_mailing_apt': 'P4_Line2d_AptSteFlrNumber[0]',
+    'p4_mailing_city': 'P4_Line2e_CityOrTown[0]',
+    'p4_mailing_zip': 'P4_Line2g_ZipCode[0]',
+    'p4_mailing_province': 'P4_Line2h_Province[0]',
+    'p4_mailing_postal_code': 'P4_Line2i_PostalCode[0]',
+    'p4_mailing_country': 'P4_Line2j_Country[0]',
+    # Physical Address
+    'p4_physical_street': 'P4_Line4a_StreetNumberName[0]',
+    'p4_physical_apt': 'P4_Line4c_AptSteFlrNumber[0]',
+    'p4_physical_city': 'P4_Line4d_CityOrTown[0]',
+    'p4_physical_zip': 'P4_Line4f_ZipCode[0]',
+    # Part 2 - Immigrant Information
+    'p2_last_name': 'P2_Line1a_FamilyName[0]',
+    'p2_first_name': 'P2_Line1b_GivenName[0]',
+    'p2_middle_name': 'P2_Line1c_MiddleName[0]',
+    'p2_relationship': 'P1_Line1b_Relationship[0]',
+}
+
+# =============================================================================
+# FORM FIELD MAPPINGS REGISTRY
+# =============================================================================
+FORM_FIELD_MAPPINGS = {
+    'I-130': FIELD_MAPPING,  # Uses the existing comprehensive mapping
+    'I-485': I485_FIELD_MAPPING,
+    'I-765': I765_FIELD_MAPPING,
+    'I-131': I131_FIELD_MAPPING,
+    'N-400': N400_FIELD_MAPPING,
+    'I-589': I589_FIELD_MAPPING,
+    'I-751': I751_FIELD_MAPPING,
+    'I-539': I539_FIELD_MAPPING,
+    'I-864': I864_FIELD_MAPPING,
+}
+
 
 def format_date(value):
     """Format date to MM/DD/YYYY"""
@@ -743,11 +1071,23 @@ def format_date(value):
         return str(value)
 
 
-def fill_pdf(answers):
-    """Fill I-130 PDF with answers using PyMuPDF"""
+def fill_pdf(answers, form_type='I-130'):
+    """Fill PDF with answers using PyMuPDF - supports all form types"""
+    # Get PDF URL for the form type
+    pdf_url = PDF_URLS.get(form_type)
+    if not pdf_url:
+        raise ValueError(f"Unknown form type: {form_type}")
+
+    # Get field mapping for the form type
+    field_mapping = FORM_FIELD_MAPPINGS.get(form_type, {})
+    if not field_mapping:
+        raise ValueError(f"No field mapping for form type: {form_type}")
+
+    print(f"Filling {form_type} PDF with {len(field_mapping)} mapped fields")
+
     # Download PDF
     tmp_input = tempfile.NamedTemporaryFile(suffix='.pdf', delete=False)
-    urllib.request.urlretrieve(I130_PDF_URL, tmp_input.name)
+    urllib.request.urlretrieve(pdf_url, tmp_input.name)
 
     # Open with PyMuPDF
     doc = fitz.open(tmp_input.name)
@@ -759,10 +1099,10 @@ def fill_pdf(answers):
             field_name = field.field_name or ''
 
             for answer_id, answer_value in answers.items():
-                if not answer_value or answer_id not in FIELD_MAPPING:
+                if not answer_value or answer_id not in field_mapping:
                     continue
 
-                mapping = FIELD_MAPPING[answer_id]
+                mapping = field_mapping[answer_id]
 
                 try:
                     if isinstance(mapping, dict):
@@ -886,7 +1226,9 @@ def health():
     return jsonify({
         'status': 'ok',
         'service': 'pdf-filler',
-        'fields_mapped': len(FIELD_MAPPING)
+        'supported_forms': list(FORM_FIELD_MAPPINGS.keys()),
+        'fields_mapped': {form: len(mapping) for form, mapping in FORM_FIELD_MAPPINGS.items()},
+        'i130_fields': len(FIELD_MAPPING)  # Legacy compatibility
     })
 
 
@@ -909,11 +1251,12 @@ def fill_pdf_endpoint():
         print(f"Filling {form_type} for {client_name}")
         print(f"Answers count: {len(answers)}")
 
-        # Fill the PDF
-        output_path = fill_pdf(answers)
+        # Fill the PDF with the specified form type
+        output_path = fill_pdf(answers, form_type)
 
-        # Return the PDF
-        filename = f"I-130-{client_name.replace(' ', '-')}.pdf"
+        # Return the PDF with form-specific filename
+        safe_name = client_name.replace(' ', '-').replace('/', '-')
+        filename = f"{form_type}-{safe_name}.pdf"
 
         response = send_file(
             output_path,
