@@ -21,34 +21,82 @@ G28_PDF_URL = os.environ.get(
     'https://www.uscis.gov/sites/default/files/document/forms/g-28.pdf'
 )
 
-# G-28 Field Mapping
+# G-28 Field Mapping - Exact field names extracted from official PDF
 G28_FIELD_MAPPING = {
+    # Part 1 - USCIS Account Number
+    'uscisOnlineAccountNumber': 'Pt1Line1_USCISOnlineAcctNumber[0]',
+
     # Part 1 - Name
-    'g28_family_name': 'Pt1Line2a_FamilyName',
-    'g28_given_name': 'Pt1Line2b_GivenName',
-    'g28_middle_name': 'Pt1Line2c_MiddleName',
+    'familyName': 'Pt1Line2a_FamilyName[0]',
+    'givenName': 'Pt1Line2b_GivenName[0]',
+    'middleName': 'Pt1Line2c_MiddleName[0]',
 
     # Part 1 - Address
-    'g28_street': 'Pt1Line3a_StreetNumberName',
-    'g28_apt_ste_flr': 'Pt1Line3b_AptSteFlrNumber',
-    'g28_city': 'Pt1Line3c_CityOrTown',
-    'g28_state': 'Pt1Line3d_State',
-    'g28_zip': 'Pt1Line3e_ZipCode',
-    'g28_province': 'Pt1Line3f_Province',
-    'g28_postal_code': 'Pt1Line3g_PostalCode',
-    'g28_country': 'Pt1Line3h_Country',
+    'streetNumberName': 'Line3a_StreetNumber[0]',
+    'aptSteFlr': 'Line3b_AptSteFlrNumber[0]',
+    'cityOrTown': 'Line3c_CityOrTown[0]',
+    'state': 'Line3d_State[0]',
+    'zipCode': 'Line3e_ZipCode[0]',
+    'province': 'Line3f_Province[0]',
+    'postalCode': 'Line3g_PostalCode[0]',
+    'country': 'Line3h_Country[0]',
 
     # Part 1 - Contact
-    'g28_daytime_phone': 'Pt1Line4_DaytimePhoneNumber',
-    'g28_mobile_phone': 'Pt1Line5_MobilePhoneNumber',
-    'g28_email': 'Pt1Line6_EmailAddress',
-    'g28_fax': 'Pt1Line7_FaxNumber',
-    'g28_uscis_account': 'Pt1Line1_USCISOnlineAcctNumber',
+    'daytimeTelephone': 'Line4_DaytimeTelephoneNumber[0]',
+    'mobileTelephone': 'Line7_MobileTelephoneNumber[0]',
+    'emailAddress': 'Line6_EMail[0]',
+    'faxNumber': 'Pt1ItemNumber7_FaxNumber[0]',
 
     # Part 2 - Eligibility
-    'g28_licensing_authority': 'Pt2Line1a_LicensingAuthority',
-    'g28_bar_number': 'Pt2Line1b_BarNumber',
-    'g28_law_firm': 'Pt2Line1d_LawFirmName',
+    'licensingAuthority': 'Pt2Line1a_LicensingAuthority[0]',
+    'barNumber': 'Pt2Line1b_BarNumber[0]',
+    'lawFirmName': 'Pt2Line1d_NameofFirmOrOrganization[0]',
+
+    # Part 3 - Appearance
+    'specificMatter': 'Line1b_ListFormNumber[0]',
+    'iceMatter': 'Line2b_ListMatter[0]',
+    'cbpMatter': 'Line3b_ListSpecificMatter[0]',
+}
+
+# Separate checkbox mappings for G-28
+G28_CHECKBOX_MAPPING = {
+    # Unit type checkboxes (Apt/Ste/Flr)
+    'aptSteFlrType': {
+        'Apt': 'Line3b_Unit[0]',
+        'Ste': 'Line3b_Unit[1]',
+        'Flr': 'Line3b_Unit[2]',
+    },
+
+    # Part 2 - Attorney or accredited rep
+    'isAttorney': {
+        True: 'CheckBox1[0]',   # I am an attorney
+        False: 'CheckBox2[0]',  # I am an accredited rep
+    },
+
+    # Part 2 - Subject to orders
+    'notSubjectToOrders': {
+        True: 'Checkbox1dAmNot[0]',   # am NOT subject
+        False: 'Checkbox1dAm[0]',     # am subject
+    },
+
+    # Part 3 - Appearance before
+    'appearsBeforeUSCIS': {
+        True: 'Line1a_USCIS[0]',
+    },
+    'appearsBeforeICE': {
+        True: 'Line2a_ICE[0]',
+    },
+    'appearsBeforeCBP': {
+        True: 'Line3a_CBP[0]',
+    },
+
+    # Part 4 - Consent
+    'sendNoticesToAttorney': {
+        True: 'Pt4Line2a_CheckBox2a[0]',
+    },
+    'sendDocumentsToAttorney': {
+        True: 'Pt4Line2b_CheckBox2b[0]',
+    },
 }
 
 # Complete I-130 field mapping from questionnaire IDs to PDF field names
@@ -894,171 +942,83 @@ def fill_pdf_endpoint():
         }), 500
 
 
+def fill_g28(settings):
+    """Fill G-28 PDF with attorney settings using PyMuPDF"""
+    # Download G-28 PDF
+    g28_url = 'https://www.uscis.gov/sites/default/files/document/forms/g-28.pdf'
+
+    tmp_input = tempfile.NamedTemporaryFile(suffix='.pdf', delete=False)
+    urllib.request.urlretrieve(g28_url, tmp_input.name)
+
+    doc = fitz.open(tmp_input.name)
+    fields_filled = 0
+
+    for page in doc:
+        for field in page.widgets():
+            field_name = field.field_name or ''
+
+            # TEXT FIELDS
+            for answer_key, pdf_field in G28_FIELD_MAPPING.items():
+                if pdf_field in field_name:
+                    value = settings.get(answer_key, '')
+                    if value:
+                        try:
+                            field.field_value = str(value)
+                            field.update()
+                            fields_filled += 1
+                            print(f"Filled text: {field_name} = {value}")
+                        except Exception as e:
+                            print(f"Warning text {field_name}: {e}")
+
+            # CHECKBOX FIELDS
+            for answer_key, option_map in G28_CHECKBOX_MAPPING.items():
+                answer_value = settings.get(answer_key)
+                if answer_value is None:
+                    continue
+
+                target_field = option_map.get(answer_value)
+                if target_field and target_field in field_name:
+                    try:
+                        field.field_value = True
+                        field.update()
+                        fields_filled += 1
+                        print(f"Checked: {field_name}")
+                    except Exception as e:
+                        print(f"Warning checkbox {field_name}: {e}")
+
+    print(f"Total G-28 fields filled: {fields_filled}")
+
+    tmp_output = tempfile.NamedTemporaryFile(suffix='.pdf', delete=False)
+    doc.save(tmp_output.name)
+    doc.close()
+    os.unlink(tmp_input.name)
+
+    return tmp_output.name
+
+
 @app.route('/fill-g28', methods=['POST'])
 def fill_g28_endpoint():
     """Fill G-28 form with attorney data from Settings"""
-    # Verify secret
     auth = request.headers.get('Authorization', '')
     if auth != f'Bearer {API_SECRET}':
         return jsonify({'error': 'Unauthorized'}), 401
 
     try:
         data = request.get_json()
-        if not data or 'answers' not in data:
-            return jsonify({'error': 'Missing answers'}), 400
+        if not data or 'settings' not in data:
+            return jsonify({'error': 'Missing settings'}), 400
 
-        answers = data['answers']
-        attorney_name = data.get('attorney_name', 'attorney')
+        settings = data['settings']
+        print(f"Filling G-28 for: {settings.get('givenName')} {settings.get('familyName')}")
+        print(f"Settings keys: {list(settings.keys())}")
 
-        print(f"Generating G-28 for {attorney_name}")
+        output_path = fill_g28(settings)
 
-        # Download G-28 PDF
-        tmp_input = tempfile.NamedTemporaryFile(suffix='.pdf', delete=False)
-        urllib.request.urlretrieve(G28_PDF_URL, tmp_input.name)
-
-        # Open with PyMuPDF
-        doc = fitz.open(tmp_input.name)
-        fields_filled = 0
-
-        # Fill text fields
-        for page in doc:
-            for field in page.widgets():
-                field_name = field.field_name or ''
-
-                for answer_id, answer_value in answers.items():
-                    if not answer_value:
-                        continue
-
-                    mapping = G28_FIELD_MAPPING.get(answer_id)
-                    if not mapping:
-                        continue
-
-                    try:
-                        if mapping in field_name:
-                            field.field_value = str(answer_value)
-                            field.update()
-                            fields_filled += 1
-                    except Exception as e:
-                        print(f'Warning: {field_name}: {e}')
-                        continue
-
-        # Handle Apt/Ste/Flr type radio buttons
-        apt_type = answers.get('g28_apt_ste_flr_type', '')
-        if apt_type:
-            for page in doc:
-                for field in page.widgets():
-                    field_name = field.field_name or ''
-                    if 'Pt1Line3b' in field_name and apt_type in field_name:
-                        try:
-                            field.field_value = True
-                            field.update()
-                            fields_filled += 1
-                        except:
-                            pass
-
-        # Part 2 - Attorney checkbox
-        if answers.get('g28_is_attorney'):
-            for page in doc:
-                for field in page.widgets():
-                    field_name = field.field_name or ''
-                    if 'Pt2Line1a' in field_name and 'CB' in field_name.upper():
-                        try:
-                            field.field_value = True
-                            field.update()
-                            fields_filled += 1
-                        except:
-                            pass
-
-        # Part 2 - Not subject to orders checkbox
-        if answers.get('g28_not_subject_to_orders'):
-            for page in doc:
-                for field in page.widgets():
-                    field_name = field.field_name or ''
-                    if 'Pt2Line1c' in field_name:
-                        try:
-                            field.field_value = True
-                            field.update()
-                            fields_filled += 1
-                        except:
-                            pass
-
-        # Part 3 - Appears before USCIS
-        if answers.get('g28_appears_uscis'):
-            for page in doc:
-                for field in page.widgets():
-                    field_name = field.field_name or ''
-                    if 'Pt3Line1a' in field_name or ('Pt3' in field_name and 'USCIS' in field_name):
-                        try:
-                            field.field_value = True
-                            field.update()
-                            fields_filled += 1
-                        except:
-                            pass
-
-        # Part 3 - Appears before ICE
-        if answers.get('g28_appears_ice'):
-            for page in doc:
-                for field in page.widgets():
-                    field_name = field.field_name or ''
-                    if 'Pt3Line1b' in field_name or ('Pt3' in field_name and 'ICE' in field_name):
-                        try:
-                            field.field_value = True
-                            field.update()
-                            fields_filled += 1
-                        except:
-                            pass
-
-        # Part 3 - Appears before CBP
-        if answers.get('g28_appears_cbp'):
-            for page in doc:
-                for field in page.widgets():
-                    field_name = field.field_name or ''
-                    if 'Pt3Line1c' in field_name or ('Pt3' in field_name and 'CBP' in field_name):
-                        try:
-                            field.field_value = True
-                            field.update()
-                            fields_filled += 1
-                        except:
-                            pass
-
-        # Part 4 - Send notices to attorney
-        if answers.get('g28_send_notices'):
-            for page in doc:
-                for field in page.widgets():
-                    field_name = field.field_name or ''
-                    if 'Pt4Line1a' in field_name:
-                        try:
-                            field.field_value = True
-                            field.update()
-                            fields_filled += 1
-                        except:
-                            pass
-
-        # Part 4 - Send documents to attorney
-        if answers.get('g28_send_documents'):
-            for page in doc:
-                for field in page.widgets():
-                    field_name = field.field_name or ''
-                    if 'Pt4Line1b' in field_name:
-                        try:
-                            field.field_value = True
-                            field.update()
-                            fields_filled += 1
-                        except:
-                            pass
-
-        print(f"Filled {fields_filled} fields in G-28")
-
-        # Save output
-        tmp_output = tempfile.NamedTemporaryFile(suffix='.pdf', delete=False)
-        doc.save(tmp_output.name)
-        doc.close()
-        os.unlink(tmp_input.name)
-
-        filename = f"G-28-{attorney_name.replace(' ', '-')}.pdf"
+        attorney_name = f"{settings.get('givenName', '')}-{settings.get('familyName', '')}"
+        filename = f"G-28-{attorney_name}.pdf"
 
         response = send_file(
-            tmp_output.name,
+            output_path,
             mimetype='application/pdf',
             as_attachment=True,
             download_name=filename
@@ -1067,19 +1027,19 @@ def fill_g28_endpoint():
         @response.call_on_close
         def cleanup():
             try:
-                os.unlink(tmp_output.name)
+                os.unlink(output_path)
             except:
                 pass
 
         return response
 
     except Exception as e:
-        print(f"Error filling G-28: {e}")
         import traceback
-        traceback.print_exc()
+        print(f"ERROR: {e}")
+        print(traceback.format_exc())
         return jsonify({
             'error': str(e),
-            'details': traceback.format_exc()
+            'traceback': traceback.format_exc()
         }), 500
 
 
